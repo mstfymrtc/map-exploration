@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
@@ -10,8 +11,8 @@ import (
 	"time"
 )
 
-const MapSizeX = 12
-const MapSizeY = 12
+const MapWidth = 14
+const MapHeight = 14
 
 const TileSize = 40
 
@@ -22,62 +23,79 @@ var DelayInMs = 0
 var U = 0
 var E = 1
 var F = 2
-var OOI = 3 //OUT OF INDEX (HARİTA DIŞI, -1)
+var EXIT = 3
 
-var tileMap = [MapSizeX][MapSizeY]int{{E, F, E, F, F, F, E, F, F, E, F, F},
-	{F, E, F, F, E, E, F, F, E, E, F, F},
-	{E, E, F, E, F, E, F, F, F, F, F, F},
-	{F, F, E, E, E, E, E, E, E, E, E, E},
-	{F, E, F, E, E, E, F, E, E, F, F, E},
-	{E, E, F, E, E, E, F, F, F, F, E, E},
-	{F, E, F, E, E, E, F, F, E, E, F, F},
-	{F, E, F, E, E, E, F, E, E, F, F, E},
-	{F, F, E, E, E, F, E, E, E, E, E, E},
-	{E, F, E, F, F, F, E, E, F, E, F, F},
-	{E, E, F, F, E, E, E, F, F, E, E, E},
-	{F, E, F, F, E, F, F, F, E, E, F, F}}
+//define directions
+var NORTH = 0
+var SOUTH = 1
+var EAST = 2
+var WEST = 3
+
+var tileMap = [MapHeight][MapWidth]int{
+
+	{F, F, F, F, EXIT, F, F, F, F, F, F, F, F, F},
+	{F, E, F, E, E, E, E, F, E, E, E, E, E, F},
+	{F, E, F, E, E, E, E, F, E, E, E, F, E, F},
+	{F, E, F, F, E, E, E, F, E, E, E, F, F, F},
+	{F, E, E, E, E, F, F, F, F, E, E, E, E, F},
+	{F, E, E, E, E, F, E, E, E, E, E, E, E, F},
+	{F, E, E, E, E, F, E, E, E, E, F, F, F, F},
+	{F, E, E, E, E, F, F, E, E, E, F, E, E, F},
+	{F, F, F, E, E, E, E, E, E, E, F, E, E, F},
+	{F, E, E, E, F, E, E, E, E, E, E, E, E, F},
+	{F, E, E, E, F, E, F, E, E, F, F, F, E, F},
+	{F, E, E, E, F, F, F, E, E, E, E, F, E, F},
+	{F, E, E, E, E, E, F, E, E, E, E, F, E, F},
+	{F, F, F, F, F, F, F, F, F, EXIT, F, F, F, F},
+}
 
 var tileColour = map[int]color.RGBA{
-	E:   colornames.White,
-	F:   colornames.Brown,
-	U:   colornames.Black,
-	OOI: colornames.Gray,
+	E:    colornames.White,
+	F:    colornames.Brown,
+	U:    colornames.Black,
+	EXIT: colornames.Yellow,
 }
 
 type Agent struct {
-	posX     int
-	posY     int
-	selfPosX int
-	selfPosY int
-	selfMap  [MapSizeX * 2][MapSizeY * 2]int
-	color    color.RGBA
+	currentCol     int
+	currentRow     int
+	selfCurrentCol int
+	selfCurrentRow int
+
+	selfMap [MapHeight * 2][MapWidth * 2]int
+
+	color color.RGBA
 	//agentın up down right ve left inde ne var (E,F,A olabilir)
-	up    int
-	down  int
-	right int
-	left  int
+	frontSensor int
+	rearSensor  int
+	rightSensor int
+	leftSensor  int
+
+	name string
+
+	directionInRealMap int
 }
 
-func NewAgent(posX int, posY int, color color.RGBA) *Agent {
-	return &Agent{posX: posX, posY: posY, color: color, selfPosX: MapSizeX, selfPosY: MapSizeY}
+func NewAgent(currentRow int, currentCol int, directionInRealMap int, color color.RGBA, name string) *Agent {
+	return &Agent{currentCol: currentCol, currentRow: currentRow, directionInRealMap: directionInRealMap, color: color, selfCurrentCol: MapWidth, selfCurrentRow: MapHeight, name: name}
 }
 
 //define agents
 var agents = []*Agent{
-	NewAgent(4, 3, colornames.Blue),
-	NewAgent(5, 5, colornames.Orange),
+	//NewAgent(4, 3, EAST, colornames.Blue, "mavi"),
+	NewAgent(2, 1, NORTH, colornames.Orange, "turuncu"),
 	//NewAgent(3, 2, colornames.Pink),
 }
 
 func run() {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Pixel Rocks!",
-		Bounds: pixel.R(0, 0, MapSizeX*TileSize, MapSizeY*TileSize),
+		Bounds: pixel.R(0, 0, MapWidth*TileSize, MapHeight*TileSize),
 		VSync:  true,
 	}
 	agentMapCfg := pixelgl.WindowConfig{
 		Title:  "Pixel Rocks!",
-		Bounds: pixel.R(0, 0, MapSizeX*TileSize, MapSizeY*TileSize),
+		Bounds: pixel.R(0, 0, MapWidth*TileSize, MapHeight*TileSize),
 		VSync:  true,
 	}
 	win, err := pixelgl.NewWindow(cfg)
@@ -97,10 +115,11 @@ func run() {
 		for i := 0; i < len(agentWindows); i++ {
 			agentWindows[i].Clear(colornames.Skyblue)
 		}
-		sense()
-		plan()
+
 		drawMap(win)
 		drawAgents(win)
+		sense()
+		plan()
 		for i := 0; i < len(agents); i++ {
 			drawAgentMap(agentWindows[i], agents[i])
 		}
@@ -108,6 +127,7 @@ func run() {
 		for i := 0; i < len(agents); i++ {
 			agentWindows[i].Update()
 		}
+		time.Sleep(time.Duration(DelayInMs) * time.Millisecond)
 
 	}
 
@@ -116,7 +136,6 @@ func run() {
 //real life'da yanımızda bir engel mi var yoksa agent mı var bunu tespit edebiliriz
 // ama buradaki simülasyonda bu bilgiyi diğer agentların pozisyonlarını kontrol edereek elde edebiliriz.
 func sense() {
-	time.Sleep(time.Duration(DelayInMs) * time.Millisecond)
 	for i := 0; i < len(agents); i++ {
 		//eğer agentlar harita kenarlarında ise up,down,right veya left'ı OOI olarak işaretle
 		//yani harita dışına çıkartmama kontrolü
@@ -124,42 +143,24 @@ func sense() {
 
 		//real life'de sensör ile detection yapınca bunu görebiliyorlar, fakat
 		//burada koordinat ile kontrol yapmak zorundayız.
-		if agents[i].posY == MapSizeY-1 {
-			agents[i].up = OOI
-		} else {
-			agents[i].up = tileMap[agents[i].posX][agents[i].posY+1]
-		}
-
-		if agents[i].posY == 0 {
-			agents[i].down = OOI
-		} else {
-			agents[i].down = tileMap[agents[i].posX][agents[i].posY-1]
-		}
-
-		if agents[i].posX == MapSizeX-1 {
-			agents[i].right = OOI
-		} else {
-			agents[i].right = tileMap[agents[i].posX+1][agents[i].posY]
-		}
-
-		if agents[i].posX == 0 {
-			agents[i].left = OOI
-		} else {
-			agents[i].left = tileMap[agents[i].posX-1][agents[i].posY]
-		}
+		agents[i].frontSensor = tileMap[agents[i].currentRow-1][agents[i].currentCol]
+		agents[i].rearSensor = tileMap[agents[i].currentRow+1][agents[i].currentCol]
+		agents[i].rightSensor = tileMap[agents[i].currentRow][agents[i].currentCol+1]
+		agents[i].leftSensor = tileMap[agents[i].currentRow][agents[i].currentCol-1]
+		fmt.Println(agents[i].name, agents[i].frontSensor, agents[i].rightSensor, agents[i].rearSensor, agents[i].leftSensor)
 		updateSelfMap(agents[i])
 		//up,down,right veya left'de bir agent var mı? var ise, exchange edecekler
 		for j := 0; j < len(agents); j++ {
-			if (agents[i].posY-1 == agents[j].posY && agents[i].posX == agents[j].posX) ||
-				(agents[i].posY+1 == agents[j].posY && agents[i].posX == agents[j].posX) ||
-				(agents[i].posX+1 == agents[j].posX && agents[i].posY == agents[j].posY) ||
-				(agents[i].posX-1 == agents[j].posX && agents[i].posY == agents[j].posY) {
+			if (agents[i].currentRow-1 == agents[j].currentRow && agents[i].currentCol == agents[j].currentCol) ||
+				(agents[i].currentRow+1 == agents[j].currentRow && agents[i].currentCol == agents[j].currentCol) ||
+				(agents[i].currentCol+1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow) ||
+				(agents[i].currentCol-1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow) {
 				//var,exchange
 				//burada bir karşılaşmada iki kez exchange yazıyor.
 				// bu bir bug değil, aksine hem a agentından b'ye
 				//hem de b agentından a'ya aktarım yapmamız gerekiyor zaten.
 
-				println("exchange")
+				//println("exchange")
 
 			}
 
@@ -168,58 +169,61 @@ func sense() {
 	}
 }
 func updateSelfPos(agent *Agent, movement string) {
-	if movement == "up" {
-		agent.selfPosY += 1
-	} else if movement == "down" {
-		agent.selfPosY -= 1
+	if movement == "forward" {
+		agent.selfCurrentRow -= 1
+	} else if movement == "backward" {
+		agent.selfCurrentRow += 1
 
 	} else if movement == "right" {
-		agent.selfPosX += 1
+		agent.selfCurrentCol += 1
 
 	} else {
-		agent.selfPosX -= 1
+		agent.selfCurrentCol -= 1
 
 	}
 
 }
 func updateSelfMap(agent *Agent) {
-	agent.selfMap[agent.selfPosX][agent.selfPosY+1] = agent.up
-	agent.selfMap[agent.selfPosX][agent.selfPosY-1] = agent.down
-	agent.selfMap[agent.selfPosX+1][agent.selfPosY] = agent.right
-	agent.selfMap[agent.selfPosX-1][agent.selfPosY] = agent.left
+	//normal haritada frontSensorde gördüğünü, kendi haritasında, önüne işaretle
+	agent.selfMap[agent.selfCurrentRow-1][agent.selfCurrentCol] = agent.frontSensor
+	//normal haritada rearSensorde gördüğünü, kendi haritasında, arkana işaretle
+	agent.selfMap[agent.selfCurrentRow+1][agent.selfCurrentCol] = agent.rearSensor
+	agent.selfMap[agent.selfCurrentRow][agent.selfCurrentCol+1] = agent.rightSensor
+	agent.selfMap[agent.selfCurrentRow][agent.selfCurrentCol-1] = agent.leftSensor
 
 }
 
 func plan() {
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
 	for i := 0; i < len(agents); i++ {
 		//şimdilik movement'ı random olarak seç
-		rand.Seed(time.Now().UnixNano())
-		num := rand.Intn(3-0+1) + 0
+		num := r.Intn(4)
 		// eğer sadece etrafları empty ise hareket et.
 		//TODO:tek satıra alınabilir?
 		if num == 0 {
-			if agents[i].up == E {
-				agents[i].posY += 1 //up
-				updateSelfPos(agents[i], "up")
+			if agents[i].frontSensor == E {
+				agents[i].currentRow -= 1 //up, agentı bir adım öne ilerlet
+				updateSelfPos(agents[i], "forward")
 
 			}
-		} else if num == 1 { //right
-			if agents[i].right == E {
-				agents[i].posX += 1
+		} else if num == 1 { //down
+			if agents[i].rearSensor == E {
+				agents[i].currentRow += 1
+				updateSelfPos(agents[i], "backward")
+
+			}
+		} else if num == 2 { //right
+			if agents[i].rightSensor == E {
+				agents[i].currentCol += 1
 				updateSelfPos(agents[i], "right")
 
 			}
-		} else if num == 2 { //left
-			if agents[i].left == E {
-				agents[i].posX -= 1
+		} else { //left
+
+			if agents[i].leftSensor == E {
+				agents[i].currentCol -= 1
 				updateSelfPos(agents[i], "left")
-
-			}
-		} else { //down
-			if agents[i].down == E {
-				agents[i].posY -= 1
-				updateSelfPos(agents[i], "down")
-
 			}
 		}
 	}
@@ -227,12 +231,12 @@ func plan() {
 }
 
 func drawMap(win *pixelgl.Window) {
-	for row := 0; row < MapSizeY; row++ {
-		for col := 0; col < MapSizeX; col++ {
+	for row := 0; row < MapHeight; row++ {
+		for col := 0; col < MapWidth; col++ {
 			imd := imdraw.New(nil)
 			imd.Color = tileColour[tileMap[row][col]]
-			imd.Push(pixel.V(float64(col*TileSize), float64(row*TileSize)))
-			imd.Push(pixel.V(float64(col*TileSize+TileSize), float64(row*TileSize+TileSize)))
+			imd.Push(pixel.V(float64(col*TileSize), float64((MapHeight-row-1)*TileSize)))
+			imd.Push(pixel.V(float64(col*TileSize+TileSize), float64((MapHeight-row-1)*TileSize+TileSize)))
 			imd.Rectangle(0)
 			imd.Draw(win)
 
@@ -240,13 +244,12 @@ func drawMap(win *pixelgl.Window) {
 	}
 }
 func drawAgentMap(win *pixelgl.Window, agent *Agent) {
-	for row := 0; row < MapSizeY*2; row++ {
-		for col := 0; col < MapSizeX*2; col++ {
-
+	for row := 0; row < MapHeight*2; row++ {
+		for col := 0; col < MapWidth*2; col++ {
 			imd := imdraw.New(nil)
 			imd.Color = tileColour[agent.selfMap[row][col]]
-			imd.Push(pixel.V(float64(col*TileSize/2), float64(row*TileSize/2)))
-			imd.Push(pixel.V(float64(col*TileSize+TileSize/2), float64((row*TileSize+TileSize)/2)))
+			imd.Push(pixel.V(float64(col*(TileSize/2)), float64((MapHeight*2-row-1)*(TileSize/2))))
+			imd.Push(pixel.V(float64(col*TileSize+(TileSize/2)), float64(((MapHeight*2-row-1)*TileSize+TileSize)/2)))
 			imd.Rectangle(0)
 			imd.Draw(win)
 
@@ -256,15 +259,20 @@ func drawAgentMap(win *pixelgl.Window, agent *Agent) {
 
 func drawAgents(win *pixelgl.Window) {
 	for i := 0; i < len(agents); i++ {
-
+		agentCurrentCol, agentCurrentRow := float64(agents[i].currentCol), float64(agents[i].currentRow)
 		imd := imdraw.New(nil)
 		imd.Color = agents[i].color
-		imd.Push(pixel.V(float64(agents[i].posY*TileSize), float64(agents[i].posX*TileSize)))
-		imd.Push(pixel.V(float64(agents[i].posY*TileSize+TileSize), float64(agents[i].posX*TileSize+TileSize)))
-		imd.Rectangle(0)
+		imd.Push(pixel.V(agentCurrentCol*TileSize, (MapHeight-agentCurrentRow-1)*TileSize))
+		imd.Color = agents[i].color
+		imd.Push(pixel.V(agentCurrentCol*TileSize+TileSize, (MapHeight-agentCurrentRow-1)*TileSize))
+		imd.Color = agents[i].color
+		imd.Push(pixel.V((agentCurrentCol*TileSize)+(TileSize/2), (MapHeight-agentCurrentRow-1)*TileSize+TileSize))
+		imd.Polygon(0)
 		imd.Draw(win)
+
 	}
 }
+
 func main() {
 	pixelgl.Run(run)
 }
