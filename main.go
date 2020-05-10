@@ -7,7 +7,6 @@ import (
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
 	"image/color"
-	"math/rand"
 	"time"
 )
 
@@ -17,7 +16,7 @@ const MapHeight = 14
 const TileSize = 40
 
 var Margin = 0.99
-var DelayInMs = 2000
+var DelayInMs = 250
 
 //define constants
 var U = 0
@@ -78,26 +77,24 @@ type Agent struct {
 
 	name string
 
-	directionInRealMap int
 	//buna en başta north diyeceğiz. agent en başta kendi haritasında initial olarak north'a bakıyorum diyecek.
 	//yönü nereye bakarsa baksın (örn sola dönük olsa bile) farketmez. north'a bakıyor diyeceğiz.
 	//sola bakıyor olduğunda tek değişen haritayı sola bakar şekilde render ederiz.
 	//yani ne yöne baktığı önemli değil, sonuçta ben north'a yönelmiş vaziyetteyim diye varsayıyor.
 	directionInSelfMap int
 
-	nextDirection int
-	nextMove      int
+	currentDirection int
+	nextDirection    int
 }
 
-func NewAgent(currentRow int, currentCol int, directionInRealMap int, color color.RGBA, name string) *Agent {
-	return &Agent{currentCol: currentCol, currentRow: currentRow, directionInRealMap: directionInRealMap, color: color, selfCurrentCol: MapWidth, selfCurrentRow: MapHeight, name: name}
+func NewAgent(currentRow int, currentCol int, currentDirection int, color color.RGBA, name string) *Agent {
+	return &Agent{currentCol: currentCol, currentRow: currentRow, currentDirection: currentDirection, color: color, selfCurrentCol: MapWidth, selfCurrentRow: MapHeight, name: name}
 }
 
 //define agents
 var agents = []*Agent{
-	//NewAgent(4, 3, EAST, colornames.Blue, "mavi"),
-	NewAgent(2, 1, EAST, colornames.Orange, "turuncu"),
-	//NewAgent(3, 2, colornames.Pink),
+	NewAgent(2, 3, SOUTH, colornames.Blue, "mavi"),
+	NewAgent(1, 1, NORTH, colornames.Orange, "turuncu"),
 }
 
 func run() {
@@ -145,6 +142,7 @@ func run() {
 		//	drawAgentMap(agentWindows[i], agents[i])
 		//}
 		win.Update()
+		time.Sleep(time.Duration(100) * time.Millisecond)
 
 		//for i := 0; i < len(agents); i++ {
 		//	agentWindows[i].Update()
@@ -181,17 +179,17 @@ func sense() {
 		//real life'de sensör ile detection yapınca bunu görebiliyorlar, fakat
 		//burada koordinat ile kontrol yapmak zorundayız.
 
-		if agents[i].directionInRealMap == NORTH {
+		if agents[i].currentDirection == NORTH {
 			agents[i].frontSensor = tileMap[agents[i].currentRow-1][agents[i].currentCol]
 			agents[i].rearSensor = tileMap[agents[i].currentRow+1][agents[i].currentCol]
 			agents[i].rightSensor = tileMap[agents[i].currentRow][agents[i].currentCol+1]
 			agents[i].leftSensor = tileMap[agents[i].currentRow][agents[i].currentCol-1]
-		} else if agents[i].directionInRealMap == EAST {
+		} else if agents[i].currentDirection == EAST {
 			agents[i].frontSensor = tileMap[agents[i].currentRow][agents[i].currentCol+1]
 			agents[i].rearSensor = tileMap[agents[i].currentRow][agents[i].currentCol-1]
 			agents[i].rightSensor = tileMap[agents[i].currentRow+1][agents[i].currentCol]
 			agents[i].leftSensor = tileMap[agents[i].currentRow-1][agents[i].currentCol]
-		} else if agents[i].directionInRealMap == SOUTH {
+		} else if agents[i].currentDirection == SOUTH {
 			agents[i].frontSensor = tileMap[agents[i].currentRow+1][agents[i].currentCol]
 			agents[i].rearSensor = tileMap[agents[i].currentRow-1][agents[i].currentCol]
 			agents[i].rightSensor = tileMap[agents[i].currentRow][agents[i].currentCol-1]
@@ -229,167 +227,96 @@ func sense() {
 }
 
 func plan() {
-	source := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(source)
 	for i := 0; i < len(agents); i++ {
 		//şimdilik movement'ı random olarak seç
-		num := r.Intn(4)
 		// eğer sadece etrafları empty ise hareket et.
 		//TODO:tek satıra alınabilir?
-		if num == 0 { //move forward
-			if agents[i].frontSensor == E {
-				if agents[i].directionInRealMap == NORTH {
-					agents[i].nextDirection = NORTH
+		if agents[i].frontSensor == E {
+			if agents[i].currentDirection == NORTH {
+				agents[i].nextDirection = NORTH
 
-				} else if agents[i].directionInRealMap == EAST {
+			} else if agents[i].currentDirection == EAST {
 
-					agents[i].nextDirection = EAST
+				agents[i].nextDirection = EAST
 
-				} else if agents[i].directionInRealMap == SOUTH {
+			} else if agents[i].currentDirection == SOUTH {
 
-					agents[i].nextDirection = SOUTH
+				agents[i].nextDirection = SOUTH
 
-				} else {
-					agents[i].nextDirection = WEST
-				}
-				agents[i].nextMove = MoveForward
-
-				//updateSelfPos(agents[i], "forward")
-
+			} else {
+				agents[i].nextDirection = WEST
 			}
-		} else if num == 1 { //move backward
-			if agents[i].rearSensor == E {
-				if agents[i].directionInRealMap == NORTH {
-					agents[i].nextDirection = SOUTH
 
-				} else if agents[i].directionInRealMap == EAST {
-					agents[i].nextDirection = WEST
+			//updateSelfPos(agents[i], "forward")
 
-				} else if agents[i].directionInRealMap == SOUTH {
-					agents[i].nextDirection = NORTH
-//move, yeni direcitona bakarak çalışıyor (nextDirection),
-//eskisine göre çalışmalı.
+		} else if agents[i].rightSensor == E {
 
-//rotate yeni, move eski directiona göre çalışmalı.
-				} else {
-					agents[i].nextDirection = EAST
-				}
-				agents[i].nextMove = MoveBackward
+			if agents[i].currentDirection == NORTH {
+				agents[i].nextDirection = EAST
 
-				//updateSelfPos(agents[i], "backward")
+			} else if agents[i].currentDirection == EAST {
+				agents[i].nextDirection = SOUTH
 
+			} else if agents[i].currentDirection == SOUTH {
+				agents[i].nextDirection = WEST
+
+			} else {
+				agents[i].nextDirection = NORTH
 			}
-		} else if num == 2 { //right
-			if agents[i].rightSensor == E {
-				if agents[i].directionInRealMap == NORTH {
-					agents[i].nextDirection = EAST
 
-				} else if agents[i].directionInRealMap == EAST {
-					agents[i].nextDirection = SOUTH
+		} else if agents[i].leftSensor == E {
 
-				} else if agents[i].directionInRealMap == SOUTH {
-					agents[i].nextDirection = WEST
+			if agents[i].currentDirection == NORTH {
+				agents[i].nextDirection = WEST
 
-				} else {
-					agents[i].nextDirection = NORTH
-				}
-				agents[i].nextMove = MoveRight
+			} else if agents[i].currentDirection == EAST {
+				agents[i].nextDirection = NORTH
 
-				//updateSelfPos(agents[i], "right")
-
+			} else if agents[i].currentDirection == SOUTH {
+				agents[i].nextDirection = EAST
+			} else {
+				agents[i].nextDirection = SOUTH
 			}
-		} else { //left
 
-			if agents[i].leftSensor == E {
-				if agents[i].directionInRealMap == NORTH {
-					agents[i].nextDirection = WEST
+		} else if agents[i].rearSensor == E {
 
-				} else if agents[i].directionInRealMap == EAST {
-					agents[i].nextDirection = NORTH
+			if agents[i].currentDirection == NORTH {
+				agents[i].nextDirection = SOUTH
 
-				} else if agents[i].directionInRealMap == SOUTH {
-					agents[i].nextDirection = EAST
-				} else {
-					agents[i].nextDirection = SOUTH
-				}
-				agents[i].nextMove = MoveLeft
+			} else if agents[i].currentDirection == EAST {
+				agents[i].nextDirection = WEST
 
-				//updateSelfPos(agents[i], "left")
+			} else if agents[i].currentDirection == SOUTH {
+				agents[i].nextDirection = NORTH
+
+			} else {
+				agents[i].nextDirection = EAST
 			}
+
 		}
-		println("nextMove:%v",agents[i].nextMove)
-		println("nextDirection:%v",agents[i].nextDirection)
 	}
-
 }
+//bu fonk. ve nextDirection olmasa da olur,sadece rotating'i draw etmek için varlar.
 func rotate() {
 
 	for i := 0; i < len(agents); i++ {
-		agents[i].directionInRealMap = agents[i].nextDirection
+		agents[i].currentDirection = agents[i].nextDirection
 	}
 }
 
 func move() {
 
 	for i := 0; i < len(agents); i++ {
-		switch agents[i].directionInRealMap {
+		switch agents[i].currentDirection {
 		case NORTH:
-			if agents[i].nextMove == MoveForward {
-				agents[i].currentRow -= 1
-
-			} else if agents[i].nextMove == MoveBackward {
-				agents[i].currentRow += 1
-
-			} else if agents[i].nextMove == MoveRight {
-				agents[i].currentCol += 1
-
-			} else {
-				agents[i].currentCol -= 1
-
-			}
+			agents[i].currentRow -= 1
 		case EAST:
-			if agents[i].nextMove == MoveForward {
-				agents[i].currentCol += 1
-
-			} else if agents[i].nextMove == MoveBackward {
-				agents[i].currentCol -= 1
-
-			} else if agents[i].nextMove == MoveRight {
-				agents[i].currentRow += 1
-
-			} else {
-				agents[i].currentRow -= 1
-
-			}
+			agents[i].currentCol += 1
 		case SOUTH:
-
-			if agents[i].nextMove == MoveForward {
-				agents[i].currentRow += 1
-
-			} else if agents[i].nextMove == MoveBackward {
-				agents[i].currentRow -= 1
-
-			} else if agents[i].nextMove == MoveRight {
-				agents[i].currentCol -= 1
-
-			} else {
-				agents[i].currentCol += 1
-
-			}
+			agents[i].currentRow += 1
 		case WEST:
-			if agents[i].nextMove == MoveForward {
-				agents[i].currentCol -= 1
+			agents[i].currentCol -= 1
 
-			} else if agents[i].nextMove == MoveBackward {
-				agents[i].currentCol += 1
-
-			} else if agents[i].nextMove == MoveRight {
-				agents[i].currentRow -= 1
-
-			} else {
-				agents[i].currentRow += 1
-
-			}
 		}
 	}
 }
@@ -410,10 +337,10 @@ func drawMap(win *pixelgl.Window) {
 
 func drawAgents(win *pixelgl.Window) {
 	for i := 0; i < len(agents); i++ {
-		agentCurrentCol, agentCurrentRow, agentDirectionInRealMap := float64(agents[i].currentCol), float64(agents[i].currentRow), agents[i].directionInRealMap
+		agentCurrentCol, agentCurrentRow, agentcurrentDirection := float64(agents[i].currentCol), float64(agents[i].currentRow), agents[i].currentDirection
 		imd := imdraw.New(nil)
 
-		switch agentDirectionInRealMap {
+		switch agentcurrentDirection {
 		case NORTH:
 			imd.Color = agents[i].color
 			imd.Push(pixel.V(agentCurrentCol*TileSize, (MapHeight-agentCurrentRow-1)*TileSize))
