@@ -22,7 +22,7 @@ const TileSize = 40
 const SelfTileSize = TileSize / 2
 
 var Margin = 0.99
-var DelayInMs = 250
+var DelayInMs = 100
 
 //define constants
 var U = 0
@@ -42,16 +42,34 @@ var MoveForward = 0
 var MoveBackward = 1
 var MoveRight = 2
 var MoveLeft = 3
-var tileMap = [MapSize][MapSize]int{
+/*var tileMap = [MapSize][MapSize]int{
 
 	{F, F, F, F, EXIT, F, F, F, F, F, F, F, F, F},
 	{F, E, F, E, E, E, E, F, E, E, E, E, E, F},
 	{F, E, F, E, E, E, E, F, E, E, E, F, E, F},
 	{F, E, F, F, E, E, E, F, E, E, E, F, F, F},
-	{F, E, E, E, E, F, F, F, F, E, E, E, E, F},
-	{F, E, E, E, E, F, E, E, E, E, E, E, E, F},
-	{F, E, E, E, E, F, E, E, E, E, F, F, F, F},
-	{F, E, E, E, E, F, F, E, E, E, F, E, E, F},
+	{F, E, E, E, E, E, E, E, E, E, E, E, E, F},
+	{F, E, E, E, E, E, E, E, E, E, E, E, E, F},
+	{F, E, E, E, E, E, E, E, E, E, F, F, F, F},
+	{F, E, E, E, E, E, E, E, E, E, F, E, E, F},
+	{F, F, F, E, E, E, E, E, E, E, F, E, E, F},
+	{F, E, E, E, F, E, E, E, E, E, E, E, E, F},
+	{F, E, E, E, F, E, F, E, E, F, F, F, E, F},
+	{F, E, E, E, F, F, F, E, E, E, E, F, E, F},
+	{F, E, E, E, E, E, F, E, E, E, E, F, E, F},
+	{F, F, F, F, F, F, F, F, F, EXIT, F, F, F, F},
+}*/
+
+var tileMap = [MapSize][MapSize]int{
+
+	{F, F, F, F, EXIT, F, F, F, F, F, F, F, F, F},
+	{F, E, F, E, E, E, E, E, E, E, E, E, E, F},
+	{F, E, F, E, E, E, E, E, E, E, E, F, E, F},
+	{F, E, F, F, E, E, E, E, E, E, E, F, F, F},
+	{F, E, E, E, E, E, E, E, E, E, E, E, E, F},
+	{F, E, E, E, E, E, E, E, E, E, E, E, E, F},
+	{F, E, E, E, E, E, E, E, E, E, F, F, F, F},
+	{F, E, E, E, E, E, E, E, E, E, F, E, E, F},
 	{F, F, F, E, E, E, E, E, E, E, F, E, E, F},
 	{F, E, E, E, F, E, E, E, E, E, E, E, E, F},
 	{F, E, E, E, F, E, F, E, E, F, F, F, E, F},
@@ -116,8 +134,11 @@ func NewAgent(currentRow int, currentCol int, currentDirection int, color color.
 
 //define agents
 var agents = []*Agent{
-	NewAgent(12, 7, North, colornames.Orange, "orange"),
-	NewAgent(2, 3, North, colornames.Blue, "blue"),
+	//NewAgent(12, 7, North, colornames.Orange, "orange"),
+	NewAgent(12, 12, North, colornames.Orange, "orange"),
+	//NewAgent(10, 10, South, colornames.Blue, "blue"),
+	NewAgent(8, 10, East, colornames.Green, "green"),
+	//NewAgent(8, 12, West, colornames.Pink, "pink"),
 }
 
 func run() {
@@ -147,7 +168,7 @@ func run() {
 		win.Update()
 
 		for i := 0; i < len(agents); i++ {
-			agentWindows[i].Clear(colornames.Skyblue)
+			agentWindows[i].Clear(colornames.Black)
 			drawAgentSelfMap(agentWindows[i], agents[i])
 			agentWindows[i].Update()
 			drawAgentToSelfMap(agentWindows[i], agents[i])
@@ -168,7 +189,7 @@ func run() {
 		win.Update()
 		for i := 0; i < len(agents); i++ {
 			selfRotate(agents[i])
-			agentWindows[i].Clear(colornames.Skyblue)
+			agentWindows[i].Clear(colornames.Black)
 			drawAgentSelfMap(agentWindows[i], agents[i])
 			agentWindows[i].Update()
 			drawAgentToSelfMap(agentWindows[i], agents[i])
@@ -792,8 +813,10 @@ func selfMove(agent *Agent) {
 		agent.selfCurrentCol -= 1
 
 	}
+
 	loopCheck(agent)
 	agent.selfPath = append(agent.selfPath, []int{agent.selfCurrentRow, agent.selfCurrentCol})
+
 
 }
 
@@ -802,7 +825,6 @@ func loopCheck(agent *Agent) {
 import numpy as np
 
 visited = %s
-
 
 offset = []
 distinctedOffset = []
@@ -823,10 +845,24 @@ for i in visited:
         rang = range(min(i[1], item[1])+1, max(i[1], item[1]))
         for n in rang:
             offset.append([i[0], n])
-        #print("for:", i)
+
 distinctedOffset = [list(x) for x in set(tuple(x) for x in offset)]
 intersection = [x for x in visited if x in distinctedOffset]
 result = [x for x in distinctedOffset if x not in intersection]
+
+for el in reversed(result):
+    els_with_same_col = []
+    els_with_same_row = []
+    for point in visited:
+        if point[1] == el[1]:
+            els_with_same_col.append(point)
+        if point[0] == el[0]:
+            els_with_same_row.append(point)
+    if len(list(filter(lambda p: p[0] < el[0], els_with_same_col))) < 1 or len(list(filter(lambda p: p[0] > el[0], els_with_same_col))) < 1:
+        result = []
+    if len(list(filter(lambda p: p[1] < el[1], els_with_same_row))) < 1 or len(list(filter(lambda p: p[1] > el[1], els_with_same_row))) < 1:
+        result = []
+
 print(result)
 `
 
@@ -834,6 +870,27 @@ print(result)
 		if agent.selfPath[i][0] == agent.selfCurrentRow && agent.selfPath[i][1] == agent.selfCurrentCol {
 			println("burda")
 			arrList := agent.selfPath[i:len(agent.selfPath)]
+			//firstEl := arrList[0]
+			//arrList = arrList[1:]
+
+		Loop:
+			//if len(arrList) > 2 {
+				for x := 1; x < len(arrList); x++ {
+					for y := len(arrList) - 1; y >= 1; y-- {
+						if x != y {
+
+							if arrList[x][0] == arrList[y][0] && arrList[x][1] == arrList[y][1] {
+								firstPart := arrList[0:x]
+								secondPart := arrList[y:len(arrList)]
+								arrList = append(firstPart, secondPart...)
+								goto Loop
+
+							}
+						}
+
+					}
+				}
+			//}
 
 			list := "["
 			for _, val := range arrList {
@@ -1144,7 +1201,7 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 
 		firstAgentSelfMap := firstAgent.selfMap
 		firstAgentSelfCurrentRow := firstAgent.selfCurrentRow
-		firstAgentSelfCurrentCol := firstAgent.selfOtherAgentCol
+		firstAgentSelfCurrentCol := firstAgent.selfCurrentCol
 
 		secondAgentTempSelfMap := secondAgent.selfMap
 
@@ -1267,7 +1324,7 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 
 		firstAgentSelfMap := firstAgent.selfMap
 		firstAgentSelfCurrentRow := firstAgent.selfCurrentRow
-		firstAgentSelfCurrentCol := firstAgent.selfOtherAgentCol
+		firstAgentSelfCurrentCol := firstAgent.selfCurrentCol
 
 		secondAgentTempSelfMap := secondAgent.selfMap
 
@@ -1391,7 +1448,7 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 
 		firstAgentSelfMap := firstAgent.selfMap
 		firstAgentSelfCurrentRow := firstAgent.selfCurrentRow
-		firstAgentSelfCurrentCol := firstAgent.selfOtherAgentCol
+		firstAgentSelfCurrentCol := firstAgent.selfCurrentCol
 
 		secondAgentTempSelfMap := secondAgent.selfMap
 
@@ -1495,7 +1552,7 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 
 		secondAgentSelfMap := secondAgent.selfMap
 		secondAgentSelfCurrentRow := secondAgent.selfCurrentRow
-		secondAgentSelfCurrentCol := secondAgent.selfOtherAgentCol
+		secondAgentSelfCurrentCol := secondAgent.selfCurrentCol
 
 		firstAgentTempSelfMap := firstAgent.selfMap
 
@@ -1513,7 +1570,7 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 
 		firstAgentSelfMap := firstAgent.selfMap
 		firstAgentSelfCurrentRow := firstAgent.selfCurrentRow
-		firstAgentSelfCurrentCol := firstAgent.selfOtherAgentCol
+		firstAgentSelfCurrentCol := firstAgent.selfCurrentCol
 
 		secondAgentTempSelfMap := secondAgent.selfMap
 
