@@ -1,7 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
+	"os/exec"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/faiface/pixel"
@@ -24,6 +29,7 @@ var U = 0
 var E = 1
 var F = 2
 var EXIT = 3
+var R = 4 //restrictred, means this area inside a loop and no need to visit
 
 //define directions
 var North = 0
@@ -59,6 +65,7 @@ var tileColour = map[int]color.RGBA{
 	F:    colornames.Brown,
 	U:    colornames.Black,
 	EXIT: colornames.Yellow,
+	R:    colornames.Gray,
 }
 
 type Agent struct {
@@ -84,10 +91,14 @@ type Agent struct {
 
 	selfOtherAgentRow int
 	selfOtherAgentCol int
+
+	selfPath [][]int
+	name     string
 }
 
-func NewAgent(currentRow int, currentCol int, currentDirection int, color color.RGBA) *Agent {
+func NewAgent(currentRow int, currentCol int, currentDirection int, color color.RGBA, name string) *Agent {
 	return &Agent{
+		name:                 name,
 		currentCol:           currentCol,
 		currentRow:           currentRow,
 		currentDirection:     currentDirection,
@@ -98,13 +109,15 @@ func NewAgent(currentRow int, currentCol int, currentDirection int, color color.
 
 		selfOtherAgentRow: -1,
 		selfOtherAgentCol: -1,
+
+		selfPath: [][]int{{MapSize, MapSize}},
 	}
 }
 
 //define agents
 var agents = []*Agent{
-	NewAgent(1, 1, East, colornames.Orange),
-	NewAgent(2, 3, North, colornames.Blue),
+	NewAgent(12, 7, North, colornames.Orange, "orange"),
+	NewAgent(2, 3, North, colornames.Blue, "blue"),
 }
 
 func run() {
@@ -639,7 +652,6 @@ func rotate() {
 }
 
 func move() {
-
 	for i := 0; i < len(agents); i++ {
 		switch agents[i].currentDirection {
 		case North:
@@ -780,6 +792,94 @@ func selfMove(agent *Agent) {
 		agent.selfCurrentCol -= 1
 
 	}
+	loopCheck(agent)
+	agent.selfPath = append(agent.selfPath, []int{agent.selfCurrentRow, agent.selfCurrentCol})
+
+}
+
+func loopCheck(agent *Agent) {
+	code := `
+import numpy as np
+
+visited = %s
+
+
+offset = []
+distinctedOffset = []
+for i in visited:
+    coordsWithSameRow = []
+    coordsWithSameCol = []
+    for j in visited:
+        if i[0] == j[0]:
+            coordsWithSameRow.append(j)
+        elif i[1] == j[1]:
+            coordsWithSameCol.append(j)
+    for item in coordsWithSameCol:
+        rang = range(min(i[0], item[0])+1, max(i[0], item[0]))
+        for n in rang:
+            offset.append([n, i[1]])
+
+    for item in coordsWithSameRow:
+        rang = range(min(i[1], item[1])+1, max(i[1], item[1]))
+        for n in rang:
+            offset.append([i[0], n])
+        #print("for:", i)
+distinctedOffset = [list(x) for x in set(tuple(x) for x in offset)]
+intersection = [x for x in visited if x in distinctedOffset]
+result = [x for x in distinctedOffset if x not in intersection]
+print(result)
+`
+
+	for i := len(agent.selfPath) - 1; i >= 0; i-- {
+		if agent.selfPath[i][0] == agent.selfCurrentRow && agent.selfPath[i][1] == agent.selfCurrentCol {
+			println("burda")
+			arrList := agent.selfPath[i:len(agent.selfPath)]
+
+			list := "["
+			for _, val := range arrList {
+				list += fmt.Sprintf("[%d,%d],", val[0], val[1])
+			}
+			list += "]"
+			cmd := exec.Command("python", "-c", fmt.Sprintf(code, list))
+
+			out, _ := cmd.Output()
+			str := strings.TrimSpace(string(out))
+			str = strings.Replace(str, " ", "", -1)
+			str = str[1 : len(str)-1]
+			if len(str) != 0 {
+				pointsInLoop := pythonListToSlice(str)
+				for _, el := range pointsInLoop {
+					//if agent.selfMap[el[0]][el[1]] != R {
+					agent.selfMap[el[0]][el[1]] = R
+
+					//}
+				}
+				//pythonListToSlice("[1,2],[3,4],[5,6],")
+
+			}
+
+			return
+
+		}
+	}
+
+}
+func pythonListToSlice(out string) [][]int {
+	var slice [][]int
+	println(out)
+	re := regexp.MustCompile(`\[([^\[\]]*)\]`)
+	subMatchAll := re.FindAllString(out, -1)
+	for _, element := range subMatchAll {
+		element = strings.Trim(element, "[")
+		element = strings.Trim(element, "]")
+		coordsInStr := strings.Split(element, ",")
+		rowInt, _ := strconv.Atoi(coordsInStr[0])
+		colInt, _ := strconv.Atoi(coordsInStr[1])
+		slice = append(slice, []int{rowInt, colInt})
+		fmt.Println(element)
+	}
+	return slice
+
 }
 
 //agentin kendi haritasındaki directionuna bağlı olarak,
