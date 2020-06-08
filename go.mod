@@ -9,6 +9,7 @@ require (
 	github.com/go-gl/gl v0.0.0-20190320180904-bf2b1f2f34d7 // indirect
 	github.com/go-gl/glfw v0.0.0-20200420212212-258d9bec320e // indirect
 	github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a // indirect
+	github.com/mroth/weightedrand v0.2.1
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f
 )

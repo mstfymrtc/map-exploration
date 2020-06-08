@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"math/rand"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
+	wr "github.com/mroth/weightedrand"
 	"golang.org/x/image/colornames"
 )
 
@@ -22,7 +24,7 @@ const TileSize = 40
 const SelfTileSize = TileSize / 2
 
 var Margin = 0.99
-var DelayInMs = 100
+var DelayInMs = 0
 
 //define constants
 var U = 0
@@ -42,6 +44,7 @@ var MoveForward = 0
 var MoveBackward = 1
 var MoveRight = 2
 var MoveLeft = 3
+
 /*var tileMap = [MapSize][MapSize]int{
 
 	{F, F, F, F, EXIT, F, F, F, F, F, F, F, F, F},
@@ -112,6 +115,11 @@ type Agent struct {
 
 	selfPath [][]int
 	name     string
+
+	selfFrontSensor int
+	selfRearSensor  int
+	selfRightSensor int
+	selfLeftSensor  int
 }
 
 func NewAgent(currentRow int, currentCol int, currentDirection int, color color.RGBA, name string) *Agent {
@@ -135,10 +143,10 @@ func NewAgent(currentRow int, currentCol int, currentDirection int, color color.
 //define agents
 var agents = []*Agent{
 	//NewAgent(12, 7, North, colornames.Orange, "orange"),
-	NewAgent(12, 12, North, colornames.Orange, "orange"),
+	//NewAgent(12, 12, South, colornames.Orange, "orange"),
 	//NewAgent(10, 10, South, colornames.Blue, "blue"),
 	NewAgent(8, 10, East, colornames.Green, "green"),
-	//NewAgent(8, 12, West, colornames.Pink, "pink"),
+	NewAgent(7, 10, West, colornames.Pink, "pink"),
 }
 
 func run() {
@@ -576,6 +584,29 @@ func sense() {
 			}
 		}
 
+		if agents[i].selfCurrentDirection == North {
+			agents[i].selfFrontSensor = agents[i].selfMap[agents[i].selfCurrentRow-1][agents[i].selfCurrentCol]
+			agents[i].selfRearSensor = agents[i].selfMap[agents[i].selfCurrentRow+1][agents[i].selfCurrentCol]
+			agents[i].selfRightSensor = agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol+1]
+			agents[i].selfLeftSensor = agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol-1]
+		} else if agents[i].selfCurrentDirection == East {
+			agents[i].selfFrontSensor = agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol+1]
+			agents[i].selfRearSensor = agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol-1]
+			agents[i].selfRightSensor = agents[i].selfMap[agents[i].selfCurrentRow+1][agents[i].selfCurrentCol]
+			agents[i].selfLeftSensor = agents[i].selfMap[agents[i].selfCurrentRow-1][agents[i].selfCurrentCol]
+
+		} else if agents[i].selfCurrentDirection == West {
+			agents[i].selfFrontSensor = agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol-1]
+			agents[i].selfRearSensor = agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol+1]
+			agents[i].selfRightSensor = agents[i].selfMap[agents[i].selfCurrentRow-1][agents[i].selfCurrentCol]
+			agents[i].selfLeftSensor = agents[i].selfMap[agents[i].selfCurrentRow+1][agents[i].selfCurrentCol]
+		} else {
+			agents[i].selfFrontSensor = agents[i].selfMap[agents[i].selfCurrentRow+1][agents[i].selfCurrentCol]
+			agents[i].selfRearSensor = agents[i].selfMap[agents[i].selfCurrentRow-1][agents[i].selfCurrentCol]
+			agents[i].selfRightSensor = agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol-1]
+			agents[i].selfLeftSensor = agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol+1]
+		}
+
 	}
 	var agentsPair []*Agent
 	for i := 0; i < len(agents); i++ {
@@ -583,6 +614,7 @@ func sense() {
 			agentsPair = append(agentsPair, agents[i])
 		}
 	}
+	//TODO: BU satırdan dolayı 2 den fazla agent varsa exchange yapmıyor
 	if len(agentsPair) == 2 {
 		exchangeMapInfo(agentsPair)
 
@@ -592,11 +624,52 @@ func sense() {
 }
 
 func plan() {
+
 	for i := 0; i < len(agents); i++ {
 		//şimdilik movement'ı random olarak seç
 		// eğer sadece etrafları empty ise hareket et.
 		//TODO:tek satıra alınabilir?
-		if agents[i].frontSensor == E {
+		frontProbability := uint(4)
+		rightProbability := uint(3)
+		leftProbability := uint(2)
+		rearProbability := uint(1)
+		//self check
+		if agents[i].selfFrontSensor == R {
+			frontProbability = 0
+		}
+		if agents[i].selfRightSensor == R {
+			rightProbability = 0
+		}
+		if agents[i].selfLeftSensor == R {
+			leftProbability = 0
+		}
+		if agents[i].selfRearSensor == R {
+			rearProbability = 0
+		}
+		//real check
+		//TODO:EXITS WILL BE REMOVED
+		if agents[i].frontSensor == F ||agents[i].frontSensor == EXIT  {
+			frontProbability = 0
+		}
+		if agents[i].rightSensor == F || agents[i].rightSensor == EXIT {
+			rightProbability = 0
+		}
+		if agents[i].leftSensor == F || agents[i].leftSensor == EXIT {
+			leftProbability = 0
+		}
+		if agents[i].rearSensor == F || agents[i].rearSensor == EXIT {
+			rearProbability = 0
+		}
+		rand.Seed(time.Now().UTC().UnixNano())
+		c := wr.NewChooser(
+			wr.Choice{Item: "front", Weight: frontProbability},
+			wr.Choice{Item: "right", Weight: rightProbability},
+			wr.Choice{Item: "left", Weight: leftProbability},
+			wr.Choice{Item: "rear", Weight: rearProbability},
+		)
+		result := c.Pick().(string)
+
+		if result == "front" {
 			if agents[i].currentDirection == North {
 				agents[i].nextDirection = North
 
@@ -613,7 +686,7 @@ func plan() {
 			}
 			selfUpdateNextRotation(agents[i], "no_rotation_change")
 
-		} else if agents[i].rightSensor == E {
+		} else if result == "right" {
 
 			if agents[i].currentDirection == North {
 				agents[i].nextDirection = East
@@ -629,7 +702,7 @@ func plan() {
 			}
 			selfUpdateNextRotation(agents[i], "rotate_right")
 
-		} else if agents[i].leftSensor == E {
+		} else if result == "left" {
 
 			if agents[i].currentDirection == North {
 				agents[i].nextDirection = West
@@ -644,7 +717,7 @@ func plan() {
 			}
 			selfUpdateNextRotation(agents[i], "rotate_left")
 
-		} else if agents[i].rearSensor == E {
+		} else if result == "rear" {
 
 			if agents[i].currentDirection == North {
 				agents[i].nextDirection = South
@@ -817,7 +890,6 @@ func selfMove(agent *Agent) {
 	loopCheck(agent)
 	agent.selfPath = append(agent.selfPath, []int{agent.selfCurrentRow, agent.selfCurrentCol})
 
-
 }
 
 func loopCheck(agent *Agent) {
@@ -875,21 +947,21 @@ print(result)
 
 		Loop:
 			//if len(arrList) > 2 {
-				for x := 1; x < len(arrList); x++ {
-					for y := len(arrList) - 1; y >= 1; y-- {
-						if x != y {
+			for x := 1; x < len(arrList); x++ {
+				for y := len(arrList) - 1; y >= 1; y-- {
+					if x != y {
 
-							if arrList[x][0] == arrList[y][0] && arrList[x][1] == arrList[y][1] {
-								firstPart := arrList[0:x]
-								secondPart := arrList[y:len(arrList)]
-								arrList = append(firstPart, secondPart...)
-								goto Loop
+						if arrList[x][0] == arrList[y][0] && arrList[x][1] == arrList[y][1] {
+							firstPart := arrList[0:x]
+							secondPart := arrList[y:len(arrList)]
+							arrList = append(firstPart, secondPart...)
+							goto Loop
 
-							}
 						}
-
 					}
+
 				}
+			}
 			//}
 
 			list := "["
@@ -944,6 +1016,11 @@ func pythonListToSlice(out string) [][]int {
 func updateSelfMap() {
 	for i := 0; i < len(agents); i++ {
 
+		upperRow := agents[i].selfMap[agents[i].selfCurrentRow-1][agents[i].selfCurrentCol]
+		lowerRow := agents[i].selfMap[agents[i].selfCurrentRow+1][agents[i].selfCurrentCol]
+		rightCol := agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol+1]
+		leftCol := agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol-1]
+
 		if agents[i].selfCurrentDirection == North {
 			//normal haritada frontSensorde gördüğünü, kendi haritasında, önüne işaretle
 			agents[i].selfMap[agents[i].selfCurrentRow-1][agents[i].selfCurrentCol] = agents[i].frontSensor
@@ -966,6 +1043,19 @@ func updateSelfMap() {
 			agents[i].selfMap[agents[i].selfCurrentRow+1][agents[i].selfCurrentCol] = agents[i].frontSensor
 			agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol+1] = agents[i].leftSensor
 			agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol-1] = agents[i].rightSensor
+		}
+
+		if upperRow == R {
+			agents[i].selfMap[agents[i].selfCurrentRow-1][agents[i].selfCurrentCol] = R
+		}
+		if lowerRow == R {
+			agents[i].selfMap[agents[i].selfCurrentRow+1][agents[i].selfCurrentCol] = R
+		}
+		if rightCol == R {
+			agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol+1] = R
+		}
+		if leftCol == R {
+			agents[i].selfMap[agents[i].selfCurrentRow][agents[i].selfCurrentCol-1] = R
 		}
 	}
 
