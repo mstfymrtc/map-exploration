@@ -21,7 +21,7 @@ const MapSize = 14
 const AgentMapSize = MapSize*2 + 1
 
 const TileSize = 40
-const SelfTileSize = TileSize / 2
+const SelfTileSize = TileSize / 4
 
 var Margin = 0.99
 var DelayInMs = 0
@@ -133,8 +133,8 @@ func NewAgent(currentRow int, currentCol int, currentDirection int, color color.
 		selfCurrentRow:       MapSize,
 		selfCurrentDirection: North, //initially, agent just assumes he is rotated to north
 
-		selfOtherAgentRow: -1,
-		selfOtherAgentCol: -1,
+		//selfOtherAgentRow: -1,
+		//selfOtherAgentCol: -1,
 
 		selfPath: [][]int{{MapSize, MapSize}},
 	}
@@ -143,22 +143,31 @@ func NewAgent(currentRow int, currentCol int, currentDirection int, color color.
 //define agents
 var agents = []*Agent{
 	//NewAgent(12, 7, North, colornames.Orange, "orange"),
-	//NewAgent(12, 12, South, colornames.Orange, "orange"),
+	NewAgent(9, 11, South, colornames.Orange, "orange"),
 	//NewAgent(10, 10, South, colornames.Blue, "blue"),
-	NewAgent(8, 10, East, colornames.Green, "green"),
-	NewAgent(7, 10, West, colornames.Pink, "pink"),
+	NewAgent(8, 11, East, colornames.Green, "green"),
+	NewAgent(7, 12, West, colornames.Pink, "pink"),
+	NewAgent(7, 8, West, colornames.Blue, "blue"),
+	NewAgent(7, 7, West, colornames.Red, "red"),
+	NewAgent(7, 6, West, colornames.Brown, "brown"),
+	NewAgent(7, 5, West, colornames.Azure, "azure"),
+	NewAgent(7, 4, West, colornames.Darkgrey, "dark_Grey"),
 }
 
 func run() {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Pixel Rocks!",
 		Bounds: pixel.R(0, 0, MapSize*TileSize, MapSize*TileSize),
-		VSync:  true,
+		VSync:  false,
+		Resizable: true,
+
 	}
 	agentMapCfg := pixelgl.WindowConfig{
 		Title:  "Pixel Rocks!",
-		Bounds: pixel.R(0, 0, MapSize*TileSize, MapSize*TileSize),
-		VSync:  true,
+		Bounds: pixel.R(0, 0, MapSize*TileSize/2, MapSize*TileSize/2),
+		VSync:  false,
+		Resizable: true,
+
 	}
 	win, err := pixelgl.NewWindow(cfg)
 	var agentWindows []*pixelgl.Window
@@ -176,7 +185,7 @@ func run() {
 		win.Update()
 
 		for i := 0; i < len(agents); i++ {
-			agentWindows[i].Clear(colornames.Black)
+			agentWindows[i].Clear(colornames.Skyblue)
 			drawAgentSelfMap(agentWindows[i], agents[i])
 			agentWindows[i].Update()
 			drawAgentToSelfMap(agentWindows[i], agents[i])
@@ -197,7 +206,7 @@ func run() {
 		win.Update()
 		for i := 0; i < len(agents); i++ {
 			selfRotate(agents[i])
-			agentWindows[i].Clear(colornames.Black)
+			agentWindows[i].Clear(colornames.Skyblue)
 			drawAgentSelfMap(agentWindows[i], agents[i])
 			agentWindows[i].Update()
 			drawAgentToSelfMap(agentWindows[i], agents[i])
@@ -219,13 +228,13 @@ func run() {
 // ama buradaki simülasyonda bu bilgiyi diğer agentların pozisyonlarını kontrol edereek elde edebiliriz.
 func sense() {
 	for i := 0; i < len(agents); i++ {
-
 		if agents[i].currentDirection == North {
 			agents[i].frontSensor = tileMap[agents[i].currentRow-1][agents[i].currentCol]
 			agents[i].rearSensor = tileMap[agents[i].currentRow+1][agents[i].currentCol]
 			agents[i].rightSensor = tileMap[agents[i].currentRow][agents[i].currentCol+1]
 			agents[i].leftSensor = tileMap[agents[i].currentRow][agents[i].currentCol-1]
 
+			//real map'te agentin etrafında başka agent varsa, o agentin koordinatlarını selfOtherAgentRow ve Col'a aktar
 			for j := 0; j < len(agents); j++ {
 				if agents[i].currentRow-1 == agents[j].currentRow && agents[i].currentCol == agents[j].currentCol {
 					switch agents[i].selfCurrentDirection {
@@ -246,10 +255,14 @@ func sense() {
 						agents[i].selfOtherAgentCol = agents[i].selfCurrentCol
 
 					}
+					updatePair("above", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 
 				if agents[i].currentCol+1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow {
 					switch agents[i].selfCurrentDirection {
+					//kendi haritasında diğer agentı işaretleme
 					case North:
 						agents[i].selfOtherAgentCol = agents[i].selfCurrentCol + 1
 						agents[i].selfOtherAgentRow = agents[i].selfCurrentRow
@@ -267,6 +280,10 @@ func sense() {
 						agents[i].selfOtherAgentRow = agents[i].selfCurrentRow
 
 					}
+
+					updatePair("right", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 				if agents[i].currentCol-1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow {
 					switch agents[i].selfCurrentDirection {
@@ -287,6 +304,9 @@ func sense() {
 						agents[i].selfOtherAgentRow = agents[i].selfCurrentRow
 
 					}
+					updatePair("left", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 
 				if agents[i].currentRow+1 == agents[j].currentRow && agents[i].currentCol == agents[j].currentCol {
@@ -308,6 +328,9 @@ func sense() {
 						agents[i].selfOtherAgentCol = agents[i].selfCurrentCol
 
 					}
+					updatePair("below", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 
 			}
@@ -337,6 +360,10 @@ func sense() {
 						agents[i].selfOtherAgentRow = agents[i].selfCurrentRow
 
 					}
+
+					updatePair("above", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 
 				if agents[i].currentCol+1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow {
@@ -358,6 +385,9 @@ func sense() {
 						agents[i].selfOtherAgentCol = agents[i].selfCurrentCol
 
 					}
+					updatePair("right", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 				if agents[i].currentCol-1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow {
 					switch agents[i].selfCurrentDirection {
@@ -378,6 +408,9 @@ func sense() {
 						agents[i].selfOtherAgentCol = agents[i].selfCurrentCol
 
 					}
+					updatePair("left", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 
 				if agents[i].currentRow+1 == agents[j].currentRow && agents[i].currentCol == agents[j].currentCol {
@@ -399,6 +432,9 @@ func sense() {
 						agents[i].selfOtherAgentRow = agents[i].selfCurrentRow
 
 					}
+					updatePair("below", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 			}
 		} else if agents[i].currentDirection == South {
@@ -427,6 +463,10 @@ func sense() {
 						agents[i].selfOtherAgentCol = agents[i].selfCurrentCol
 
 					}
+
+					updatePair("above", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 
 				if agents[i].currentCol+1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow {
@@ -448,6 +488,10 @@ func sense() {
 						agents[i].selfOtherAgentRow = agents[i].selfCurrentRow
 
 					}
+
+					updatePair("right", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 				if agents[i].currentCol-1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow {
 					switch agents[i].selfCurrentDirection {
@@ -468,6 +512,9 @@ func sense() {
 						agents[i].selfOtherAgentRow = agents[i].selfCurrentRow
 
 					}
+					updatePair("left", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 
 				if agents[i].currentRow+1 == agents[j].currentRow && agents[i].currentCol == agents[j].currentCol {
@@ -489,6 +536,9 @@ func sense() {
 						agents[i].selfOtherAgentCol = agents[i].selfCurrentCol
 
 					}
+					updatePair("below", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 			}
 
@@ -518,6 +568,10 @@ func sense() {
 						agents[i].selfOtherAgentRow = agents[i].selfCurrentRow
 
 					}
+
+					updatePair("above", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 
 				if agents[i].currentCol+1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow {
@@ -539,6 +593,9 @@ func sense() {
 						agents[i].selfOtherAgentCol = agents[i].selfCurrentCol
 
 					}
+					updatePair("right", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 				if agents[i].currentCol-1 == agents[j].currentCol && agents[i].currentRow == agents[j].currentRow {
 					switch agents[i].selfCurrentDirection {
@@ -559,6 +616,9 @@ func sense() {
 						agents[i].selfOtherAgentCol = agents[i].selfCurrentCol
 
 					}
+					updatePair("left", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 
 				if agents[i].currentRow+1 == agents[j].currentRow && agents[i].currentCol == agents[j].currentCol {
@@ -580,10 +640,14 @@ func sense() {
 						agents[i].selfOtherAgentRow = agents[i].selfCurrentRow
 
 					}
+					updatePair("below", agents[j])
+					exchangeMapInfo(agents[i], agents[j])
+
 				}
 			}
 		}
 
+		//agentların kendi haritasında etrafındaki tileleri sensöre aktar (plan'daki hareket için gerekli)
 		if agents[i].selfCurrentDirection == North {
 			agents[i].selfFrontSensor = agents[i].selfMap[agents[i].selfCurrentRow-1][agents[i].selfCurrentCol]
 			agents[i].selfRearSensor = agents[i].selfMap[agents[i].selfCurrentRow+1][agents[i].selfCurrentCol]
@@ -608,19 +672,339 @@ func sense() {
 		}
 
 	}
-	var agentsPair []*Agent
-	for i := 0; i < len(agents); i++ {
-		if agents[i].selfOtherAgentRow != -1 && agents[i].selfOtherAgentCol != -1 {
-			agentsPair = append(agentsPair, agents[i])
-		}
-	}
-	//TODO: BU satırdan dolayı 2 den fazla agent varsa exchange yapmıyor
-	if len(agentsPair) == 2 {
-		exchangeMapInfo(agentsPair)
-
-	}
 	updateSelfMap()
 
+}
+
+//pos=self pos according to other agent's pos in real map
+func updatePair(pos string, agent *Agent) {
+	switch pos {
+	case "above":
+
+		switch agent.currentDirection {
+		case North:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			}
+
+		case East:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+
+			}
+		case West:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+
+			}
+		case South:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			}
+		}
+	case "right":
+		switch agent.currentDirection {
+		case North:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+
+			}
+
+		case East:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			}
+		case West:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			}
+		case South:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+
+			}
+
+		}
+	case "left":
+		switch agent.currentDirection {
+		case North:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+
+			}
+
+		case East:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			}
+		case West:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			}
+		case South:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+
+			}
+
+		}
+	case "below":
+
+		switch agent.currentDirection {
+		case North:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			}
+
+		case East:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+
+			}
+		case West:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+
+			}
+		case South:
+			switch agent.selfCurrentDirection {
+			case North:
+				agent.selfOtherAgentRow = agent.selfCurrentRow + 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			case East:
+				agent.selfOtherAgentCol = agent.selfCurrentCol - 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case West:
+				agent.selfOtherAgentCol = agent.selfCurrentCol + 1
+				agent.selfOtherAgentRow = agent.selfCurrentRow
+
+			case South:
+				agent.selfOtherAgentRow = agent.selfCurrentRow - 1
+				agent.selfOtherAgentCol = agent.selfCurrentCol
+
+			}
+
+		}
+	}
 }
 
 func plan() {
@@ -648,7 +1032,7 @@ func plan() {
 		}
 		//real check
 		//TODO:EXITS WILL BE REMOVED
-		if agents[i].frontSensor == F ||agents[i].frontSensor == EXIT  {
+		if agents[i].frontSensor == F || agents[i].frontSensor == EXIT {
 			frontProbability = 0
 		}
 		if agents[i].rightSensor == F || agents[i].rightSensor == EXIT {
@@ -940,7 +1324,7 @@ print(result)
 
 	for i := len(agent.selfPath) - 1; i >= 0; i-- {
 		if agent.selfPath[i][0] == agent.selfCurrentRow && agent.selfPath[i][1] == agent.selfCurrentCol {
-			println("burda")
+			//println("burda")
 			arrList := agent.selfPath[i:len(agent.selfPath)]
 			//firstEl := arrList[0]
 			//arrList = arrList[1:]
@@ -995,7 +1379,6 @@ print(result)
 }
 func pythonListToSlice(out string) [][]int {
 	var slice [][]int
-	println(out)
 	re := regexp.MustCompile(`\[([^\[\]]*)\]`)
 	subMatchAll := re.FindAllString(out, -1)
 	for _, element := range subMatchAll {
@@ -1005,7 +1388,7 @@ func pythonListToSlice(out string) [][]int {
 		rowInt, _ := strconv.Atoi(coordsInStr[0])
 		colInt, _ := strconv.Atoi(coordsInStr[1])
 		slice = append(slice, []int{rowInt, colInt})
-		fmt.Println(element)
+		//fmt.Println(element)
 	}
 	return slice
 
@@ -1144,11 +1527,7 @@ func rotate90DegreeClockwise(arr [AgentMapSize][AgentMapSize]int, selfCurrentRow
 }
 
 // TODO: will be refactored
-func exchangeMapInfo(agentsPair []*Agent) () {
-
-	firstAgent := agentsPair[0]
-	secondAgent := agentsPair[1]
-	//1st pos
+func exchangeMapInfo(firstAgent *Agent, secondAgent *Agent) {
 
 	if firstAgent.selfOtherAgentRow == firstAgent.selfCurrentRow-1 &&
 		firstAgent.selfOtherAgentCol == firstAgent.selfCurrentCol &&
@@ -1164,7 +1543,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1179,7 +1561,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1202,7 +1587,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1217,7 +1605,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1241,7 +1632,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1256,7 +1650,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1283,7 +1680,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1301,7 +1701,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1325,7 +1728,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1340,7 +1746,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1364,7 +1773,11 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1379,7 +1792,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1406,7 +1822,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1424,7 +1843,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1448,7 +1870,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 			for row := 0; row < AgentMapSize; row++ {
 				for col := 0; col < AgentMapSize; col++ {
 					if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+						if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+							firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+						}
 					}
 
 				}
@@ -1463,7 +1888,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 			for row := 0; row < AgentMapSize; row++ {
 				for col := 0; col < AgentMapSize; col++ {
 					if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+						if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+							secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+						}
 					}
 
 				}
@@ -1487,7 +1915,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 			for row := 0; row < AgentMapSize; row++ {
 				for col := 0; col < AgentMapSize; col++ {
 					if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+						if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+							firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+						}
 					}
 
 				}
@@ -1502,7 +1933,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 			for row := 0; row < AgentMapSize; row++ {
 				for col := 0; col < AgentMapSize; col++ {
 					if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+						if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+							secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+						}
 					}
 
 				}
@@ -1530,7 +1964,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1548,7 +1985,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1572,7 +2012,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1587,7 +2030,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1610,7 +2056,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1625,7 +2074,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1652,7 +2104,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1670,7 +2125,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1695,7 +2153,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1710,7 +2171,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1735,7 +2199,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1750,7 +2217,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1775,7 +2245,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if secondAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+					if firstAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						firstAgentTempSelfMap[row+rowOffset][col+colOffset] = secondAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1790,7 +2263,10 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		for row := 0; row < AgentMapSize; row++ {
 			for col := 0; col < AgentMapSize; col++ {
 				if firstAgentRotatedSelfMap[row][col] != U && row+rowOffset < AgentMapSize && row+rowOffset > -1 && col+colOffset < AgentMapSize && col+colOffset > -1 {
-					secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+					if secondAgentTempSelfMap[row+rowOffset][col+colOffset] != R {
+						secondAgentTempSelfMap[row+rowOffset][col+colOffset] = firstAgentRotatedSelfMap[row][col]
+
+					}
 				}
 
 			}
@@ -1800,10 +2276,6 @@ func exchangeMapInfo(agentsPair []*Agent) () {
 		secondAgent.selfMap = secondAgentTempSelfMap
 
 	}
-	firstAgent.selfOtherAgentRow = -1
-	firstAgent.selfOtherAgentCol = -1
-	secondAgent.selfOtherAgentRow = -1
-	secondAgent.selfOtherAgentCol = -1
 }
 func main() {
 	pixelgl.Run(run)

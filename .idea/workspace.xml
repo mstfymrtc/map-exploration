@@ -3,11 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="821a8097-ab84-4025-ad1c-63b5b6544597" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
     </list>
-    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -29,6 +26,10 @@
   </component>
   <component name="ProjectId" id="1b0NVkHUJoE2qBFeUI40aAzwpVd" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
   <component name="PropertiesComponent">
     <property name="DefaultGoTemplateProperty" value="Go File" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
@@ -37,18 +38,6 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$/.." />
     <property name="restartRequiresConfirmation" value="false" />
     <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
-  </component>
-  <component name="RunDashboard">
-    <option name="ruleStates">
-      <list>
-        <RuleState>
-          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
-        </RuleState>
-        <RuleState>
-          <option name="name" value="StatusDashboardGroupingRule" />
-        </RuleState>
-      </list>
-    </option>
   </component>
   <component name="RunManager">
     <configuration name="go build main.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
@@ -67,127 +56,188 @@
     </recent_temporary>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="1" />
+    <option name="version" value="2" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="COLUMN_ORDER" />
-            </State>
+            <State />
           </value>
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
+    <environment>
+      <map>
+        <entry key="GOPROXY" value="direct" />
+      </map>
+    </environment>
     <proxy>direct</proxy>
+  </component>
+  <component name="WindowStateProjectService">
+    <state width="594" height="466" key="DebuggerActiveHint" timestamp="1591752911878">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state width="594" height="466" key="DebuggerActiveHint/0.23.1440.774@0.23.1440.774" timestamp="1591752911878" />
+    <state width="1398" height="140" key="GridCell.Tab.0.bottom" timestamp="1591761703205">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state width="1398" height="140" key="GridCell.Tab.0.bottom/0.23.1440.774@0.23.1440.774" timestamp="1591761703205" />
+    <state width="1398" height="140" key="GridCell.Tab.0.center" timestamp="1591761703204">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state width="1398" height="140" key="GridCell.Tab.0.center/0.23.1440.774@0.23.1440.774" timestamp="1591761703204" />
+    <state width="1398" height="140" key="GridCell.Tab.0.left" timestamp="1591761703204">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state width="1398" height="140" key="GridCell.Tab.0.left/0.23.1440.774@0.23.1440.774" timestamp="1591761703204" />
+    <state width="1398" height="140" key="GridCell.Tab.0.right" timestamp="1591761703204">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state width="1398" height="140" key="GridCell.Tab.0.right/0.23.1440.774@0.23.1440.774" timestamp="1591761703204" />
+    <state width="720" height="318" key="GridCell.Tab.1.bottom" timestamp="1591756692629">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state width="720" height="318" key="GridCell.Tab.1.bottom/0.23.1440.774@0.23.1440.774" timestamp="1591756692629" />
+    <state width="720" height="318" key="GridCell.Tab.1.center" timestamp="1591756692628">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state width="720" height="318" key="GridCell.Tab.1.center/0.23.1440.774@0.23.1440.774" timestamp="1591756692628" />
+    <state width="720" height="318" key="GridCell.Tab.1.left" timestamp="1591756692628">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state width="720" height="318" key="GridCell.Tab.1.left/0.23.1440.774@0.23.1440.774" timestamp="1591756692628" />
+    <state width="720" height="318" key="GridCell.Tab.1.right" timestamp="1591756692628">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state width="720" height="318" key="GridCell.Tab.1.right/0.23.1440.774@0.23.1440.774" timestamp="1591756692628" />
+    <state x="520" y="275" key="scopes" timestamp="1591755527843">
+      <screen x="0" y="23" width="1440" height="774" />
+    </state>
+    <state x="520" y="275" key="scopes/0.23.1440.774@0.23.1440.774" timestamp="1591755527843" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1234</line>
+          <line>1625</line>
           <option name="timeStamp" value="51" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1195</line>
+          <line>1580</line>
           <option name="timeStamp" value="52" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1157</line>
+          <line>1536</line>
           <option name="timeStamp" value="53" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1273</line>
+          <line>1670</line>
           <option name="timeStamp" value="54" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1318</line>
+          <line>1721</line>
           <option name="timeStamp" value="55" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1357</line>
+          <line>1766</line>
           <option name="timeStamp" value="56" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1396</line>
+          <line>1812</line>
           <option name="timeStamp" value="57" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1441</line>
+          <line>1863</line>
           <option name="timeStamp" value="58" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1480</line>
+          <line>1908</line>
           <option name="timeStamp" value="59" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1520</line>
+          <line>1954</line>
           <option name="timeStamp" value="60" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1603</line>
+          <line>2049</line>
           <option name="timeStamp" value="61" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1642</line>
+          <line>2094</line>
           <option name="timeStamp" value="62" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1688</line>
+          <line>2146</line>
           <option name="timeStamp" value="63" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1008</line>
-          <option name="timeStamp" value="73" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1295</line>
+          <line>1695</line>
           <option name="timeStamp" value="97" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1565</line>
+          <line>2005</line>
           <option name="timeStamp" value="98" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1728</line>
+          <line>2192</line>
           <option name="timeStamp" value="99" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1771</line>
+          <line>2241</line>
           <option name="timeStamp" value="100" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>1146</line>
-          <option name="timeStamp" value="103" />
+          <line>329</line>
+          <option name="timeStamp" value="119" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/main.go</url>
-          <line>617</line>
-          <option name="timeStamp" value="110" />
+          <line>297</line>
+          <option name="timeStamp" value="123" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/main.go</url>
+          <line>301</line>
+          <option name="timeStamp" value="124" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/main.go</url>
+          <line>674</line>
+          <option name="timeStamp" value="125" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/main.go</url>
+          <line>1529</line>
+          <option name="timeStamp" value="127" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/main.go</url>
+          <line>154</line>
+          <option name="timeStamp" value="128" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
